@@ -136,10 +136,18 @@ fi\n\
 # Function to check PostgreSQL\n\
 check_postgres() {\n\
     if [ -n "$POSTGRES_URI" ]; then\n\
-        echo "Waiting for PostgreSQL..."\n\
+        # Parse POSTGRES_URI for connection details\n\
+        # Default to environment variables if not set\n\
+        PG_HOST=${POSTGRES_HOST:-${PGHOST:-postgres}}\n\
+        PG_PORT=${POSTGRES_PORT:-${PGPORT:-5432}}\n\
+        PG_USER=${POSTGRES_USER:-${PGUSER:-postgres}}\n\
+        PG_DB=${POSTGRES_DB:-${PGDATABASE:-morphik}}\n\
+        PG_PASS=${POSTGRES_PASSWORD:-${PGPASSWORD:-}}\n\
+        \n\
+        echo "Waiting for PostgreSQL at $PG_HOST:$PG_PORT..."\n\
         max_retries=30\n\
         retries=0\n\
-        until PGPASSWORD=$PGPASSWORD pg_isready -h postgres -U morphik -d morphik; do\n\
+        until PGPASSWORD=$PG_PASS pg_isready -h $PG_HOST -p $PG_PORT -U $PG_USER -d $PG_DB; do\n\
             retries=$((retries + 1))\n\
             if [ $retries -eq $max_retries ]; then\n\
                 echo "Error: PostgreSQL did not become ready in time"\n\
@@ -151,7 +159,7 @@ check_postgres() {\n\
         echo "PostgreSQL is ready!"\n\
         \n\
         # Verify database connection\n\
-        if ! PGPASSWORD=$PGPASSWORD psql -h postgres -U morphik -d morphik -c "SELECT 1" > /dev/null 2>&1; then\n\
+        if ! PGPASSWORD=$PG_PASS psql -h $PG_HOST -p $PG_PORT -U $PG_USER -d $PG_DB -c "SELECT 1" > /dev/null 2>&1; then\n\
             echo "Error: Could not connect to PostgreSQL database"\n\
             exit 1\n\
         fi\n\
